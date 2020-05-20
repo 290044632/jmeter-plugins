@@ -11,6 +11,9 @@
 		<jmeter.version>5.2.1</jmeter.version>
 		<rocketmq.version>4.7.0</rocketmq.version>
 		<fastjson.version>1.2.68</fastjson.version>
+		<dubbo.version>2.6.2</dubbo.version>
+		<zkclient.version>0.1</zkclient.version>
+		<zookepper.version>3.3.3</zookepper.version>
 		<jmeter.plugin.version>master</jmeter.plugin.version>
 	</properties>
 
@@ -38,6 +41,34 @@
 				<artifactId>fastjson</artifactId>
 				<version>${fastjson.version}</version>
 			</dependency>
+			<dependency>
+				<groupId>com.alibaba</groupId>
+				<artifactId>dubbo</artifactId>
+				<version>${dubbo.version}</version>
+				<exclusions>
+					<exclusion>
+						<groupId>org.springframework</groupId>
+						<artifactId>spring-context</artifactId>
+					</exclusion>
+				</exclusions>
+			</dependency>
+			<dependency>
+				<groupId>com.github.sgroschupf</groupId>
+				<artifactId>zkclient</artifactId>
+				<version>${zkclient.version}</version>
+				<exclusions>
+					<exclusion>
+						<groupId>org.apache.zookeeper</groupId>
+						<artifactId>zookeeper</artifactId>
+					</exclusion>
+				</exclusions>
+			</dependency>
+			<dependency>
+				<groupId>org.apache.zookeeper</groupId>
+				<artifactId>zookeeper</artifactId>
+				<version>${zookepper.version}</version>
+				<type>pom</type>
+			</dependency>
 
 		</dependencies>
 	</dependencyManagement>
@@ -50,6 +81,10 @@
 		<dependency>
 			<groupId>org.apache.jmeter</groupId>
 			<artifactId>ApacheJMeter_java</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.alibaba</groupId>
+			<artifactId>fastjson</artifactId>
 		</dependency>
 	</dependencies>
 
