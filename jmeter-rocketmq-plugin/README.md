@@ -1,2 +1,2 @@
 # jmeter-rocketmq-plugin
-Jmeter RocketMQ²å¼ş
+Jmeter RocketMQæ’ä»¶
