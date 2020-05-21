@@ -1,11 +1,14 @@
 package com.silence.jmeter.plugin.dubbo.gui;
 
 import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.GridLayout;
 
 import javax.swing.BorderFactory;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
@@ -21,6 +24,10 @@ import com.silence.jmeter.plugin.dubbo.util.JmeterResUtils;
 
 public class JmeterDubboFrame {
 
+	private static final int HEIGHT = 100;
+	
+	private static final int ARG_HEIGHT =150;
+
 	private static final String EMPTY = "";
 
 	private JLabel samplerTitleLabel;
@@ -32,8 +39,14 @@ public class JmeterDubboFrame {
 	private JLabel samplerRegistryProtocolNameLabel, samplerRegistryProtocolAddressLabel;
 
 	private JTextField samplerRegistryProtocolNameText, samplerRegistryProtocolAddressText;
-	
+
 	private final EmptyBorder paddingBorder = new EmptyBorder(0, 10, 10, 10);
+
+	private JTable protocolTable, consumerTable, interfaceTable;
+
+	private JLabel interfaceClassLabel, interfaceMethodLabel, interfaceArgLabel;
+
+	private JTextField interfaceClassText, interfaceMethodText;
 
 	private AbstractSamplerGui samplerGui;
 
@@ -45,6 +58,7 @@ public class JmeterDubboFrame {
 	public void init() {
 		this.samplerGui.setLayout(new BorderLayout());
 		this.samplerTitleLabel = new JLabel(JmeterResUtils.getResString(Resources.SAMPLER_NAME));
+		this.samplerTitleLabel.setFont(new Font("宋体", Font.BOLD, 23));
 		this.samplerGui.add(this.samplerTitleLabel, BorderLayout.NORTH);
 
 		JPanel samplerBaseInfoPanel = createSamplerBaseInfoPanel();
@@ -53,13 +67,19 @@ public class JmeterDubboFrame {
 
 		JPanel samplerProtocolPanel = createProtocolPanel();
 
-		JPanel samplerJPanel1 = new VerticalPanel();
-		samplerJPanel1.setLayout(new GridLayout(5, 1));
-		samplerJPanel1.add(samplerBaseInfoPanel);
-		samplerJPanel1.add(samplerRegistryPanel);
-		samplerJPanel1.add(samplerProtocolPanel);
+		JPanel consumerPanel = createConsumerPanel();
 
-		this.samplerGui.add(samplerJPanel1, BorderLayout.CENTER);
+		JPanel interfacePanel = createInterfacePanel();
+
+		JPanel samplerControlJPanel = new VerticalPanel();
+		//samplerControlJPanel.setLayout(new GridLayout(5, 1));
+		samplerControlJPanel.add(samplerBaseInfoPanel);
+		samplerControlJPanel.add(samplerRegistryPanel);
+		samplerControlJPanel.add(samplerProtocolPanel);
+		samplerControlJPanel.add(consumerPanel);
+		samplerControlJPanel.add(interfacePanel);
+		
+		this.samplerGui.add(samplerControlJPanel, BorderLayout.CENTER);
 	}
 
 	public void refeshTestElement(final TestElement element) {
@@ -125,7 +145,7 @@ public class JmeterDubboFrame {
 	}
 
 	private JPanel createProtocolPanel() {
-		JPanel samplerProtocolPanel = new HorizontalPanel();
+		JPanel samplerProtocolPanel = new VerticalPanel();
 		samplerProtocolPanel
 				.setBorder(BorderFactory.createTitledBorder(JmeterResUtils.getResString(Resources.PROTOCOL_SETTINGS)));
 
@@ -133,10 +153,75 @@ public class JmeterDubboFrame {
 				JmeterResUtils.getResString(Resources.PARAM_VALUE) };
 		Object[][] rowDatas = new Object[][] { { "name", "dubbo" }, { "port", "2181" } };
 		DefaultTableModel defaultTableModel = new DefaultTableModel(rowDatas, columnNames);
-		JTable table = new JTable(defaultTableModel);
-		table.addMouseListener(new JmeterDataGridRightClickEventListener());
-		samplerProtocolPanel.add(table.getTableHeader(), BorderLayout.NORTH);
-		samplerProtocolPanel.add(table, BorderLayout.CENTER);
+		protocolTable = new JTable(defaultTableModel);
+		protocolTable.addMouseListener(new JmeterDataGridRightClickEventListener());
+		samplerProtocolPanel.add(protocolTable.getTableHeader(), BorderLayout.NORTH);
+		JScrollPane jScrollPane = new JScrollPane(protocolTable);
+		jScrollPane.setPreferredSize(new Dimension(samplerProtocolPanel.getWidth(), HEIGHT));
+		samplerProtocolPanel.add(jScrollPane, BorderLayout.CENTER);
 		return samplerProtocolPanel;
+	}
+
+	private JPanel createConsumerPanel() {
+		JPanel samplerConsumerPanel = new HorizontalPanel();
+		samplerConsumerPanel
+				.setBorder(BorderFactory.createTitledBorder(JmeterResUtils.getResString(Resources.CONSUMER_SETTINGS)));
+
+		Object[] columnNames = new Object[] { JmeterResUtils.getResString(Resources.PARAM_NAME),
+				JmeterResUtils.getResString(Resources.PARAM_VALUE) };
+		Object[][] rowDatas = new Object[][] { {} };
+		DefaultTableModel defaultTableModel = new DefaultTableModel(rowDatas, columnNames);
+		consumerTable = new JTable(defaultTableModel);
+		consumerTable.addMouseListener(new JmeterDataGridRightClickEventListener());
+		samplerConsumerPanel.add(consumerTable.getTableHeader(), BorderLayout.NORTH);
+		JScrollPane jScrollPane = new JScrollPane(consumerTable);
+		jScrollPane.setPreferredSize(new Dimension(samplerConsumerPanel.getWidth(), HEIGHT));
+		samplerConsumerPanel.add(jScrollPane, BorderLayout.CENTER);
+		return samplerConsumerPanel;
+	}
+
+	private JPanel createInterfacePanel() {
+		JPanel samplerInterfacePanel = new VerticalPanel();
+		samplerInterfacePanel
+				.setBorder(BorderFactory.createTitledBorder(JmeterResUtils.getResString(Resources.INTERFACE_SETTINGS)));
+
+		JPanel interfaceClassPanel = new HorizontalPanel();
+		this.interfaceClassLabel = new JLabel(JmeterResUtils.getResString(Resources.INTERFACE_CLASS));
+		this.interfaceClassText = new JTextField();
+		interfaceClassPanel.setBorder(paddingBorder);
+		interfaceClassPanel.add(this.interfaceClassLabel, BorderLayout.WEST);
+		interfaceClassPanel.add(this.interfaceClassText, BorderLayout.CENTER);
+
+		JPanel interfaceMethodPanel = new HorizontalPanel();
+		this.interfaceMethodLabel = new JLabel(JmeterResUtils.getResString(Resources.INTERFACE_METHOD));
+		this.interfaceMethodText = new JTextField();
+		interfaceMethodPanel.setBorder(paddingBorder);
+		interfaceMethodPanel.add(this.interfaceMethodLabel, BorderLayout.WEST);
+		interfaceMethodPanel.add(this.interfaceMethodText, BorderLayout.CENTER);
+
+		JPanel interfaceArgPanel = new HorizontalPanel();
+		this.interfaceArgLabel = new JLabel(JmeterResUtils.getResString(Resources.INTERFACE_ARG));
+		
+		JPanel argPanel = new VerticalPanel();
+		Object[] columnNames = new Object[] { JmeterResUtils.getResString(Resources.PARAM_TYPE),
+				JmeterResUtils.getResString(Resources.PARAM_VALUE) };
+		Object[][] rowDatas = new Object[][] { {} };
+		DefaultTableModel defaultTableModel = new DefaultTableModel(rowDatas, columnNames);
+		interfaceTable = new JTable(defaultTableModel);
+		interfaceTable.addMouseListener(new JmeterDataGridRightClickEventListener());
+		argPanel.add(interfaceTable.getTableHeader(), BorderLayout.NORTH);
+		JScrollPane jScrollPane = new JScrollPane(interfaceTable);
+		jScrollPane.setPreferredSize(new Dimension(argPanel.getWidth(), ARG_HEIGHT));
+		argPanel.add(jScrollPane, BorderLayout.CENTER);
+		
+		interfaceArgPanel.setBorder(paddingBorder);
+		interfaceArgPanel.add(this.interfaceArgLabel, BorderLayout.WEST);
+		interfaceArgPanel.add(argPanel, BorderLayout.CENTER);
+		
+
+		samplerInterfacePanel.add(interfaceClassPanel);
+		samplerInterfacePanel.add(interfaceMethodPanel);
+		samplerInterfacePanel.add(interfaceArgPanel);
+		return samplerInterfacePanel;
 	}
 }
