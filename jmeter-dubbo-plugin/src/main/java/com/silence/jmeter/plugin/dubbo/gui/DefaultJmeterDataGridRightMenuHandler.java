@@ -31,7 +31,6 @@ public class DefaultJmeterDataGridRightMenuHandler implements JmeterDataGridRigh
 				if (row != -1 && rowCount > 1) {
 					model.removeRow(row);
 				}
-				logger.info("totalCount:{}， row:{}", rowCount, row);
 			}
 		}
 	}
