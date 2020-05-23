@@ -8,12 +8,7 @@ import javax.swing.JMenuItem;
 import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 public class DefaultJmeterDataGridRightMenuHandler implements JmeterDataGridRightMenuHandler {
-
-	private static Logger logger = LoggerFactory.getLogger(DefaultJmeterDataGridRightMenuHandler.class);
 
 	@Override
 	public void doAction(ActionEvent e, Object source) {
