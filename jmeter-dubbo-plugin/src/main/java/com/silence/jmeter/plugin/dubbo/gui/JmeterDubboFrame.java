@@ -16,33 +16,35 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
+import javax.swing.event.ChangeEvent;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.JTableHeader;
 
 import org.apache.jmeter.gui.util.HorizontalPanel;
 import org.apache.jmeter.gui.util.VerticalPanel;
 import org.apache.jmeter.samplers.gui.AbstractSamplerGui;
 import org.apache.jmeter.testelement.TestElement;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import com.silence.jmeter.plugin.dubbo.constants.ConfigReference;
 import com.silence.jmeter.plugin.dubbo.constants.Resources;
 import com.silence.jmeter.plugin.dubbo.model.JmeterDubboInterfaceModel;
 import com.silence.jmeter.plugin.dubbo.util.JmeterJSONUtils;
 import com.silence.jmeter.plugin.dubbo.util.JmeterResUtils;
 
-public class JmeterDubboFrame {
+public class JmeterDubboFrame implements ConfigReference {
 
+	private static final String EMPTY_CHAR = "";
+
+	private static Logger logger = LoggerFactory.getLogger(JmeterDubboFrame.class);
+
+	@Deprecated
 	private static final Object[][] DEFAULT_PROTOCOL_CONFIG = new Object[][] { { "name", "dubbo" },
 			{ "port", "3603" } };
 
 	private static final Object[][] DEFAULT_REGISTRY_CONFIG = new Object[][] { { "protocol", "zookeeper" },
 			{ "address", "127.0.0.1:2181" } };
-
-	private static final String INTERFACE_CONFIG = "interfaceConfig";
-
-	private static final String CONSUMER_CONFIG = "consumerConfig";
-
-	private static final String PROTOCOL_CONFIG = "protocolConfig";
-
-	private static final String REGISTRY_CONFIG = "registryConfig";
 
 	private static final int HEIGHT = 100;
 
@@ -66,6 +68,7 @@ public class JmeterDubboFrame {
 
 	public JmeterDubboFrame(AbstractSamplerGui samplerGui) {
 		this.samplerGui = samplerGui;
+		this.init();
 	}
 
 	public void init() {
@@ -74,20 +77,20 @@ public class JmeterDubboFrame {
 		this.samplerTitleLabel.setFont(new Font("宋体", Font.BOLD, 23));
 		this.samplerGui.add(this.samplerTitleLabel, BorderLayout.NORTH);
 
-		JPanel samplerBaseInfoPanel = createSamplerBaseInfoPanel();
+		JPanel samplerBaseInfoPanel = renderSamplerBaseInfoPanel();
 
-		JPanel samplerRegistryPanel = createRegistryPanel();
+		JPanel samplerRegistryPanel = renderRegistryPanel();
 
-		JPanel samplerProtocolPanel = createProtocolPanel();
+//		JPanel samplerProtocolPanel = createProtocolPanel();
 
-		JPanel consumerPanel = createConsumerPanel();
+		JPanel consumerPanel = renderConsumerPanel();
 
-		JPanel interfacePanel = createInterfacePanel();
+		JPanel interfacePanel = renderInterfacePanel();
 
 		JPanel samplerControlJPanel = new VerticalPanel();
 		samplerControlJPanel.add(samplerBaseInfoPanel);
 		samplerControlJPanel.add(samplerRegistryPanel);
-		samplerControlJPanel.add(samplerProtocolPanel);
+//		samplerControlJPanel.add(samplerProtocolPanel);
 		samplerControlJPanel.add(consumerPanel);
 		samplerControlJPanel.add(interfacePanel);
 
@@ -95,32 +98,43 @@ public class JmeterDubboFrame {
 	}
 
 	public void refeshTestElement(final TestElement element) {
-		element.setName(this.samplerNameText.getText());
+		String samplerName = this.samplerNameText.getText();
+		logger.debug("sampler name:{}", samplerName);
+		element.setName(samplerName);
 		element.setComment(this.samplerCommentText.getText());
 		element.setProperty(REGISTRY_CONFIG, getConfigString(this.registryTable));
-		element.setProperty(PROTOCOL_CONFIG, getConfigString(this.protocolTable));
+		// element.setProperty(PROTOCOL_CONFIG, getConfigString(this.protocolTable));
 		element.setProperty(CONSUMER_CONFIG, getConfigString(this.consumerTable));
 		element.setProperty(INTERFACE_CONFIG, getInterfaceConfigString(this.interfaceTable));
 	}
 
 	public void configureFrame(final TestElement element) {
-		this.init();
 		this.samplerNameText.setText(element.getName());
 		this.samplerCommentText.setText(element.getComment());
 
 		Object[] tableColumnNames1 = getTableColumnNames1();
 		Object[] tableColumnNames2 = getTableColumnNames2();
 		configComponent(this.registryTable, element, REGISTRY_CONFIG, DEFAULT_REGISTRY_CONFIG, tableColumnNames1);
-		configComponent(this.protocolTable, element, PROTOCOL_CONFIG, DEFAULT_PROTOCOL_CONFIG, tableColumnNames1);
+		// configComponent(this.protocolTable, element, PROTOCOL_CONFIG,
+		// DEFAULT_PROTOCOL_CONFIG, tableColumnNames1);
 		configComponent(this.consumerTable, element, CONSUMER_CONFIG, null, tableColumnNames1);
 		configInterfaceComponent(this.interfaceTable, element, INTERFACE_CONFIG, null, tableColumnNames2);
 	}
 
 	public void clearGUI() {
-		this.init();
+		logger.debug("Clear GUI");
+		this.samplerNameText.setText(JmeterResUtils.getResString(Resources.SAMPLER_NAME));
+		this.samplerCommentText.setText(EMPTY_CHAR);
+		Object[] tableColumnNames1 = getTableColumnNames1();
+		Object[] tableColumnNames2 = getTableColumnNames2();
+		this.configJTableComponent(null, this.registryTable, DEFAULT_REGISTRY_CONFIG, tableColumnNames1);
+		this.configJTableComponent(null, this.consumerTable, null, tableColumnNames1);
+		this.interfaceClassText.setText(EMPTY_CHAR);
+		this.interfaceMethodText.setText(EMPTY_CHAR);
+		this.configJTableComponent(null, this.interfaceTable, null, tableColumnNames2);
 	}
 
-	private JPanel createSamplerBaseInfoPanel() {
+	private JPanel renderSamplerBaseInfoPanel() {
 		JPanel samplerBaseInfoPanel = new HorizontalPanel();
 		JPanel samplerNamePanel = new HorizontalPanel();
 		this.samplerNameLabel = new JLabel(JmeterResUtils.getResString(Resources.NAME));
@@ -141,24 +155,28 @@ public class JmeterDubboFrame {
 		return samplerBaseInfoPanel;
 	}
 
-	private JPanel createRegistryPanel() {
+	private JPanel renderRegistryPanel() {
 		JPanel samplerRegistryPanel = new HorizontalPanel();
 		samplerRegistryPanel.setBorder(
 				BorderFactory.createTitledBorder(JmeterResUtils.getResString(Resources.REGISTRY_PROTOCOL_SETTINGS)));
 
 		Object[] columnNames = getTableColumnNames1();
-		Object[][] rowDatas = new Object[][] {};
+		Object[][] rowDatas = new Object[][] { {} };
 		DefaultTableModel defaultTableModel = new DefaultTableModel(rowDatas, columnNames);
 		registryTable = new JTable(defaultTableModel);
 		registryTable.addMouseListener(new JmeterDataGridRightClickEventListener());
-		samplerRegistryPanel.add(registryTable.getTableHeader(), BorderLayout.NORTH);
+		registryTable.setDragEnabled(false);
+		JTableHeader tableHeader = registryTable.getTableHeader();
+		tableHeader.setReorderingAllowed(false);
+		samplerRegistryPanel.add(tableHeader, BorderLayout.NORTH);
 		JScrollPane jScrollPane = new JScrollPane(registryTable);
 		jScrollPane.setPreferredSize(new Dimension(samplerRegistryPanel.getWidth(), HEIGHT));
 		samplerRegistryPanel.add(jScrollPane, BorderLayout.CENTER);
 		return samplerRegistryPanel;
 	}
 
-	private JPanel createProtocolPanel() {
+	@Deprecated
+	private JPanel renderProtocolPanel() {
 		JPanel samplerProtocolPanel = new VerticalPanel();
 		samplerProtocolPanel
 				.setBorder(BorderFactory.createTitledBorder(JmeterResUtils.getResString(Resources.PROTOCOL_SETTINGS)));
@@ -168,14 +186,16 @@ public class JmeterDubboFrame {
 		DefaultTableModel defaultTableModel = new DefaultTableModel(rowDatas, columnNames);
 		protocolTable = new JTable(defaultTableModel);
 		protocolTable.addMouseListener(new JmeterDataGridRightClickEventListener());
-		samplerProtocolPanel.add(protocolTable.getTableHeader(), BorderLayout.NORTH);
+		JTableHeader tableHeader = protocolTable.getTableHeader();
+		tableHeader.setReorderingAllowed(false);
+		samplerProtocolPanel.add(tableHeader, BorderLayout.NORTH);
 		JScrollPane jScrollPane = new JScrollPane(protocolTable);
 		jScrollPane.setPreferredSize(new Dimension(samplerProtocolPanel.getWidth(), HEIGHT));
 		samplerProtocolPanel.add(jScrollPane, BorderLayout.CENTER);
 		return samplerProtocolPanel;
 	}
 
-	private JPanel createConsumerPanel() {
+	private JPanel renderConsumerPanel() {
 		JPanel samplerConsumerPanel = new HorizontalPanel();
 		samplerConsumerPanel
 				.setBorder(BorderFactory.createTitledBorder(JmeterResUtils.getResString(Resources.CONSUMER_SETTINGS)));
@@ -185,14 +205,17 @@ public class JmeterDubboFrame {
 		DefaultTableModel defaultTableModel = new DefaultTableModel(rowDatas, columnNames);
 		consumerTable = new JTable(defaultTableModel);
 		consumerTable.addMouseListener(new JmeterDataGridRightClickEventListener());
-		samplerConsumerPanel.add(consumerTable.getTableHeader(), BorderLayout.NORTH);
+		consumerTable.setDragEnabled(false);
+		JTableHeader tableHeader = consumerTable.getTableHeader();
+		tableHeader.setReorderingAllowed(false);
+		samplerConsumerPanel.add(tableHeader, BorderLayout.NORTH);
 		JScrollPane jScrollPane = new JScrollPane(consumerTable);
 		jScrollPane.setPreferredSize(new Dimension(samplerConsumerPanel.getWidth(), HEIGHT));
 		samplerConsumerPanel.add(jScrollPane, BorderLayout.CENTER);
 		return samplerConsumerPanel;
 	}
 
-	private JPanel createInterfacePanel() {
+	private JPanel renderInterfacePanel() {
 		JPanel samplerInterfacePanel = new VerticalPanel();
 		samplerInterfacePanel
 				.setBorder(BorderFactory.createTitledBorder(JmeterResUtils.getResString(Resources.INTERFACE_SETTINGS)));
@@ -220,7 +243,10 @@ public class JmeterDubboFrame {
 		DefaultTableModel defaultTableModel = new DefaultTableModel(rowDatas, columnNames);
 		interfaceTable = new JTable(defaultTableModel);
 		interfaceTable.addMouseListener(new JmeterDataGridRightClickEventListener());
-		argPanel.add(interfaceTable.getTableHeader(), BorderLayout.NORTH);
+		interfaceTable.setDragEnabled(false);
+		JTableHeader tableHeader = interfaceTable.getTableHeader();
+		tableHeader.setReorderingAllowed(false);
+		argPanel.add(tableHeader, BorderLayout.NORTH);
 		JScrollPane jScrollPane = new JScrollPane(interfaceTable);
 		jScrollPane.setPreferredSize(new Dimension(argPanel.getWidth(), ARG_HEIGHT));
 		argPanel.add(jScrollPane, BorderLayout.CENTER);
@@ -236,7 +262,7 @@ public class JmeterDubboFrame {
 	}
 
 	public String getInterfaceConfigString(final JTable table) {
-		Map<Object, Object> args = this.getConfig(table);
+		Map<String, Object> args = this.getConfig(table);
 		String className = this.interfaceClassText.getText();
 		String method = this.interfaceMethodText.getText();
 		return JmeterJSONUtils.toJSONString(new JmeterDubboInterfaceModel(className, method, args));
@@ -247,21 +273,29 @@ public class JmeterDubboFrame {
 	}
 
 	@SuppressWarnings("unchecked")
-	private Map<Object, Object> getConfig(final JTable table) {
-		DefaultTableModel registryTableModel = (DefaultTableModel) table.getModel();
-		Map<Object, Object> registryConfig = new HashMap<>();
-		registryTableModel.getDataVector().forEach(data -> {
+	private Map<String, Object> getConfig(final JTable table) {
+		table.editingStopped(new ChangeEvent(table));
+		DefaultTableModel tableModel = (DefaultTableModel) table.getModel();
+		tableModel.fireTableDataChanged();
+		Map<String, Object> config = new HashMap<>();
+		tableModel.getDataVector().forEach(data -> {
 			if (null != data) {
 				Vector<Object> v = (Vector<Object>) data;
-				registryConfig.put(v.get(0), v.get(1));
+				if (!v.isEmpty()) {
+					Object key = v.get(0), value = v.get(1);
+					if (null != key && null != value)
+						config.put(key.toString(), value);
+				}
 			}
 		});
-		return registryConfig;
+		logger.debug("读取到的参数配置:{}", JmeterJSONUtils.toJSONString(config));
+		return config;
 	}
 
 	private void configInterfaceComponent(final JTable table, final TestElement element, final String key,
 			Object[][] defaultValues, Object[] columnNames) {
 		String configVaule = element.getPropertyAsString(key);
+		logger.debug("模板文件中获取到的配置：{}", configVaule);
 		if (null != configVaule && !configVaule.isEmpty()) {
 			JmeterDubboInterfaceModel interfaceModel = JmeterJSONUtils.toObject(configVaule,
 					JmeterDubboInterfaceModel.class);
@@ -291,7 +325,7 @@ public class JmeterDubboFrame {
 		}
 	}
 
-	private void configJTableComponent(Map<Object, Object> configMap, final JTable table, Object[][] defaultValues,
+	private void configJTableComponent(Map<String, Object> configMap, final JTable table, Object[][] defaultValues,
 			Object[] columnNames) {
 		DefaultTableModel tableModel = (DefaultTableModel) table.getModel();
 		Object[][] dataVector = null;
@@ -316,13 +350,14 @@ public class JmeterDubboFrame {
 		}
 		tableModel.setDataVector(dataVector, columnNames);
 	}
-	
+
 	private Object[] getTableColumnNames1() {
 		return new Object[] { JmeterResUtils.getResString(Resources.PARAM_NAME),
 				JmeterResUtils.getResString(Resources.PARAM_VALUE) };
 	}
+
 	private Object[] getTableColumnNames2() {
-		return  new Object[] { JmeterResUtils.getResString(Resources.PARAM_TYPE),
+		return new Object[] { JmeterResUtils.getResString(Resources.PARAM_TYPE),
 				JmeterResUtils.getResString(Resources.PARAM_VALUE) };
 	}
 

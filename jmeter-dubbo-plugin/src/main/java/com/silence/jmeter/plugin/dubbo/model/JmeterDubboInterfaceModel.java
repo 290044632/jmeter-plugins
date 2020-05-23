@@ -8,12 +8,12 @@ public class JmeterDubboInterfaceModel {
 	
 	private String method;
 	
-	private Map<Object, Object> args;
+	private Map<String, Object> args;
 	
 	public JmeterDubboInterfaceModel() {
 	}
 
-	public JmeterDubboInterfaceModel(String className, String method, Map<Object, Object> args) {
+	public JmeterDubboInterfaceModel(String className, String method, Map<String, Object> args) {
 		super();
 		this.className = className;
 		this.method = method;
@@ -36,11 +36,11 @@ public class JmeterDubboInterfaceModel {
 		this.method = method;
 	}
 
-	public Map<Object, Object> getArgs() {
+	public Map<String, Object> getArgs() {
 		return args;
 	}
 
-	public void setArgs(Map<Object, Object> args) {
+	public void setArgs(Map<String, Object> args) {
 		this.args = args;
 	}
 	
