@@ -13,7 +13,7 @@
 		<fastjson.version>1.2.68</fastjson.version>
 		<dubbo.version>2.6.2</dubbo.version>
 		<zkclient.version>0.1</zkclient.version>
-		<zookepper.version>3.3.3</zookepper.version>
+		<zookepper.version>3.4.14</zookepper.version>
 		<curator-framework.version>2.12.0</curator-framework.version>
 		<jmeter.plugin.version>master</jmeter.plugin.version>
 	</properties>
