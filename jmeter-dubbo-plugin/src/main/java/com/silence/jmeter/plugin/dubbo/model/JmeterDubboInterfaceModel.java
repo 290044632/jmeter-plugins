@@ -1,5 +1,6 @@
 package com.silence.jmeter.plugin.dubbo.model;
 
+import java.util.List;
 import java.util.Map;
 
 public class JmeterDubboInterfaceModel {
@@ -8,16 +9,18 @@ public class JmeterDubboInterfaceModel {
 	
 	private String method;
 	
-	private Map<String, Object> args;
+	private Map<String, Object> dubboConfig;
 	
+	private List<Map<String, Object>> args;
 	public JmeterDubboInterfaceModel() {
 	}
 
-	public JmeterDubboInterfaceModel(String className, String method, Map<String, Object> args) {
+	public JmeterDubboInterfaceModel(String className, String method,List< Map<String, Object>> args,Map<String, Object> dubboConfig) {
 		super();
 		this.className = className;
 		this.method = method;
 		this.args = args;
+		this.dubboConfig = dubboConfig;
 	}
 
 	public String getClassName() {
@@ -36,12 +39,20 @@ public class JmeterDubboInterfaceModel {
 		this.method = method;
 	}
 
-	public Map<String, Object> getArgs() {
+	public void setArgs(List< Map<String, Object>> args) {
+		this.args = args;
+	}
+
+	public List<Map<String, Object>> getArgs() {
 		return args;
 	}
 
-	public void setArgs(Map<String, Object> args) {
-		this.args = args;
+	public Map<String, Object> getDubboConfig() {
+		return dubboConfig;
+	}
+
+	public void setDubboConfig(Map<String, Object> dubboConfig) {
+		this.dubboConfig = dubboConfig;
 	}
 	
 }

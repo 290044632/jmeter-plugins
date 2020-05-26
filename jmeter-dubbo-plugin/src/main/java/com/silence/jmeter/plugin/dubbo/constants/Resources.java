@@ -18,4 +18,6 @@ public interface Resources {
 	String INTERFACE_CLASS = "interface.class";
 	String INTERFACE_METHOD = "interface.method";
 	String INTERFACE_ARG = "interface.arg";
+	String REFERENCE_ARGS = "reference.args";
+	String INTERFACE_ARGS = "interface.args";
 }

@@ -58,7 +58,7 @@ public class JmeterDubboFrame implements ConfigReference {
 
 	private final EmptyBorder paddingBorder = new EmptyBorder(0, 10, 10, 10);
 
-	private JTable protocolTable, consumerTable, interfaceTable, registryTable;
+	private JTable protocolTable, consumerTable, interfaceTable, registryTable, referenceTable;
 
 	private JLabel interfaceClassLabel, interfaceMethodLabel, interfaceArgLabel;
 
@@ -106,6 +106,7 @@ public class JmeterDubboFrame implements ConfigReference {
 		// element.setProperty(PROTOCOL_CONFIG, getConfigString(this.protocolTable));
 		element.setProperty(CONSUMER_CONFIG, getConfigString(this.consumerTable));
 		element.setProperty(INTERFACE_CONFIG, getInterfaceConfigString(this.interfaceTable));
+
 	}
 
 	public void configureFrame(final TestElement element) {
@@ -132,6 +133,7 @@ public class JmeterDubboFrame implements ConfigReference {
 		this.interfaceClassText.setText(EMPTY_CHAR);
 		this.interfaceMethodText.setText(EMPTY_CHAR);
 		this.configJTableComponent(null, this.interfaceTable, null, tableColumnNames2);
+		this.configJTableComponent(null, this.referenceTable, null, tableColumnNames1);
 	}
 
 	private JPanel renderSamplerBaseInfoPanel() {
@@ -234,10 +236,27 @@ public class JmeterDubboFrame implements ConfigReference {
 		interfaceMethodPanel.add(this.interfaceMethodLabel, BorderLayout.WEST);
 		interfaceMethodPanel.add(this.interfaceMethodText, BorderLayout.CENTER);
 
+		JPanel referencePanel = new VerticalPanel();
+		referencePanel
+				.setBorder(BorderFactory.createTitledBorder(JmeterResUtils.getResString(Resources.REFERENCE_ARGS)));
+		Object[] referenceColumnNames = getTableColumnNames1();
+		Object[][] referenceRowDatas = new Object[][] { {} };
+		DefaultTableModel referenceDefaultTableModel = new DefaultTableModel(referenceRowDatas, referenceColumnNames);
+		referenceTable = new JTable(referenceDefaultTableModel);
+		referenceTable.addMouseListener(new JmeterDataGridRightClickEventListener());
+		referenceTable.setDragEnabled(false);
+		JTableHeader referenceTableHeader = referenceTable.getTableHeader();
+		referenceTableHeader.setReorderingAllowed(false);
+		referencePanel.add(referenceTableHeader, BorderLayout.NORTH);
+		JScrollPane referenceJScrollPane = new JScrollPane(referenceTable);
+		referenceJScrollPane.setPreferredSize(new Dimension(referencePanel.getWidth(), ARG_HEIGHT));
+		referencePanel.add(referenceJScrollPane, BorderLayout.CENTER);
+
 		JPanel interfaceArgPanel = new HorizontalPanel();
 		this.interfaceArgLabel = new JLabel(JmeterResUtils.getResString(Resources.INTERFACE_ARG));
 
 		JPanel argPanel = new VerticalPanel();
+		argPanel.setBorder(BorderFactory.createTitledBorder(JmeterResUtils.getResString(Resources.INTERFACE_ARGS)));
 		Object[] columnNames = getTableColumnNames2();
 		Object[][] rowDatas = new Object[][] { {} };
 		DefaultTableModel defaultTableModel = new DefaultTableModel(rowDatas, columnNames);
@@ -252,20 +271,22 @@ public class JmeterDubboFrame implements ConfigReference {
 		argPanel.add(jScrollPane, BorderLayout.CENTER);
 
 		interfaceArgPanel.setBorder(paddingBorder);
-		interfaceArgPanel.add(this.interfaceArgLabel, BorderLayout.WEST);
+		// interfaceArgPanel.add(this.interfaceArgLabel, BorderLayout.WEST);
 		interfaceArgPanel.add(argPanel, BorderLayout.CENTER);
 
 		samplerInterfacePanel.add(interfaceClassPanel);
 		samplerInterfacePanel.add(interfaceMethodPanel);
+		samplerInterfacePanel.add(referencePanel);
 		samplerInterfacePanel.add(interfaceArgPanel);
 		return samplerInterfacePanel;
 	}
 
 	public String getInterfaceConfigString(final JTable table) {
-		Map<String, Object> args = this.getConfig(table);
 		String className = this.interfaceClassText.getText();
 		String method = this.interfaceMethodText.getText();
-		return JmeterJSONUtils.toJSONString(new JmeterDubboInterfaceModel(className, method, args));
+		List<Map<String, Object>> args = this.getInterfaceArgsConfig(table);
+		Map<String, Object> dubboConfig = this.getConfig(referenceTable);
+		return JmeterJSONUtils.toJSONString(new JmeterDubboInterfaceModel(className, method, args, dubboConfig));
 	}
 
 	private String getConfigString(final JTable table) {
@@ -292,6 +313,29 @@ public class JmeterDubboFrame implements ConfigReference {
 		return config;
 	}
 
+	@SuppressWarnings("unchecked")
+	private List<Map<String, Object>> getInterfaceArgsConfig(final JTable table) {
+		table.editingStopped(new ChangeEvent(table));
+		DefaultTableModel tableModel = (DefaultTableModel) table.getModel();
+		tableModel.fireTableDataChanged();
+		List<Map<String, Object>> list = new ArrayList<>();
+		tableModel.getDataVector().forEach(data -> {
+			if (null != data) {
+				Vector<Object> v = (Vector<Object>) data;
+				if (!v.isEmpty()) {
+					Object key = v.get(0), value = v.get(1);
+					if (null != key && null != value) {
+						Map<String, Object> config = new HashMap<>();
+						config.put(key.toString(), value);
+						list.add(config);
+					}
+				}
+			}
+		});
+		logger.debug("读取到的参数配置:{}", JmeterJSONUtils.toJSONString(list));
+		return list;
+	}
+
 	private void configInterfaceComponent(final JTable table, final TestElement element, final String key,
 			Object[][] defaultValues, Object[] columnNames) {
 		String configVaule = element.getPropertyAsString(key);
@@ -308,7 +352,9 @@ public class JmeterDubboFrame implements ConfigReference {
 				if (null != method) {
 					this.interfaceMethodText.setText(method);
 				}
-				this.configJTableComponent(interfaceModel.getArgs(), table, defaultValues, columnNames);
+				this.configInterfaceArgsJTableComponent(interfaceModel.getArgs(), table, defaultValues, columnNames);
+				this.configJTableComponent(interfaceModel.getDubboConfig(), this.referenceTable, defaultValues,
+						getTableColumnNames1());
 			}
 		}
 	}
@@ -325,6 +371,36 @@ public class JmeterDubboFrame implements ConfigReference {
 		}
 	}
 
+	private void configInterfaceArgsJTableComponent(List<Map<String, Object>> args, final JTable table,
+			Object[][] defaultValues, Object[] columnNames) {
+		DefaultTableModel tableModel = (DefaultTableModel) table.getModel();
+		Object[][] dataVector = null;
+		if (args != null && !args.isEmpty()) {
+			List<Object[]> list = new ArrayList<>();
+			args.forEach(configMap -> {
+				if (null != configMap && !configMap.isEmpty()) {
+					configMap.forEach((_key, _value) -> {
+						list.add(new Object[] { _key, _value });
+					});
+				}
+			});
+			if (!list.isEmpty()) {
+				dataVector = new Object[list.size()][2];
+				for (int i = 0; i < list.size(); i++) {
+					dataVector[i] = list.get(i);
+				}
+			}
+		}
+		if (null == dataVector) {
+			if (null != defaultValues) {
+				dataVector = defaultValues;
+			} else {
+				dataVector = new Object[][] { {} };
+			}
+		}
+		tableModel.setDataVector(dataVector, columnNames);
+	}
+	
 	private void configJTableComponent(Map<String, Object> configMap, final JTable table, Object[][] defaultValues,
 			Object[] columnNames) {
 		DefaultTableModel tableModel = (DefaultTableModel) table.getModel();

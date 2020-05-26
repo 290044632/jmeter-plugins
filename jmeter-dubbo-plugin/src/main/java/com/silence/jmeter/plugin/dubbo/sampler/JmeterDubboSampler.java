@@ -10,6 +10,7 @@ import org.apache.jmeter.samplers.SampleResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.alibaba.dubbo.config.ApplicationConfig;
 import com.alibaba.dubbo.config.ConsumerConfig;
 import com.alibaba.dubbo.config.ProtocolConfig;
 import com.alibaba.dubbo.config.ReferenceConfig;
@@ -28,12 +29,14 @@ public class JmeterDubboSampler extends AbstractSampler implements ConfigReferen
 
 	private static Logger logger = LoggerFactory.getLogger(JmeterDubboSampler.class);
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public SampleResult sample(Entry e) {
 
 		SampleResult result = new SampleResult();
 		result.setSampleLabel(this.getName());
 		try {
+			ApplicationConfig applicationConfig = new ApplicationConfig("Jmeter" + Thread.currentThread().getId());
 			// 注册中心配置
 			RegistryConfig registryConfig = this.getRegistryConfig();
 			// 协议配置
@@ -42,18 +45,28 @@ public class JmeterDubboSampler extends AbstractSampler implements ConfigReferen
 			ConsumerConfig consumerConfig = this.getConsumerConfig();
 
 			JmeterDubboInterfaceModel interfaceModel = getInterfaceModel();
-			ReferenceConfig<?> referenceConfig = new ReferenceConfig<>();
+			Map<String, Object> dubboConfig = interfaceModel.getDubboConfig();
+			ReferenceConfig<GenericService> referenceConfig = null;
+			if (null != dubboConfig) {
+				referenceConfig = JmeterJSONUtils.toObject(JmeterJSONUtils.toJSONString(dubboConfig),
+						ReferenceConfig.class);
+			}
+			if (null == referenceConfig) {
+				referenceConfig = new ReferenceConfig<>();
+			}
+			referenceConfig.setApplication(applicationConfig);
 			referenceConfig.setRegistry(registryConfig);
 			referenceConfig.setConsumer(consumerConfig);
 			referenceConfig.setInterface(interfaceModel.getClassName());
+			referenceConfig.setGeneric(true);
 			ReferenceConfigCache cache = ReferenceConfigCache.getCache();
-			GenericService genericService = (GenericService) cache.get(referenceConfig);
+			GenericService genericService = cache.get(referenceConfig);
 			if (null == genericService) {
 				result.setResponseData(
 						"未从注册中心" + registryConfig.toString() + "找到接口：" + referenceConfig.toString() + "提供者", UTF_8);
 				return result;
 			}
-			Map<String, Object> argsConfig = interfaceModel.getArgs();
+			List<Map<String, Object>> argsConfig = interfaceModel.getArgs();
 			String[] parameterTypes = null;
 			Object[] args = null;
 			if (null != argsConfig) {
@@ -61,11 +74,13 @@ public class JmeterDubboSampler extends AbstractSampler implements ConfigReferen
 				int size = argsConfig.size();
 				List<String> parameterTypeList = new ArrayList<>();
 				List<Object> argsList = new ArrayList<>();
-				argsConfig.forEach((key, value) -> {
-					if (StringUtils.isNotBlank(key)) {
-						parameterTypeList.add(key);
-						argsList.add(value);
-					}
+				argsConfig.forEach(map -> {
+					map.forEach((key, value) -> {
+						if (StringUtils.isNotBlank(key)) {
+							parameterTypeList.add(key);
+							argsList.add(value);
+						}
+					});
 				});
 				if (!parameterTypeList.isEmpty()) {
 					parameterTypes = new String[size];
@@ -77,7 +92,9 @@ public class JmeterDubboSampler extends AbstractSampler implements ConfigReferen
 				parameterTypes = new String[] {};
 				args = new Object[] {};
 			}
+			result.sampleStart();
 			Object $invoke = genericService.$invoke(interfaceModel.getMethod(), parameterTypes, args);
+			result.sampleEnd();
 			result.setResponseData(JmeterJSONUtils.toJSONString($invoke), UTF_8);
 			result.setResponseOK();
 		} catch (Exception ex) {

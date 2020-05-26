@@ -14,6 +14,7 @@
 		<dubbo.version>2.6.2</dubbo.version>
 		<zkclient.version>0.1</zkclient.version>
 		<zookepper.version>3.3.3</zookepper.version>
+		<curator-framework.version>2.12.0</curator-framework.version>
 		<jmeter.plugin.version>master</jmeter.plugin.version>
 	</properties>
 
@@ -69,7 +70,17 @@
 				<version>${zookepper.version}</version>
 				<type>pom</type>
 			</dependency>
-
+			<dependency>
+				<groupId>org.apache.curator</groupId>
+				<artifactId>curator-framework</artifactId>
+				<version>${curator-framework.version}</version>
+				<exclusions>
+					<exclusion>
+						<artifactId>netty</artifactId>
+						<groupId>io.netty</groupId>
+					</exclusion>
+				</exclusions>
+			</dependency>
 		</dependencies>
 	</dependencyManagement>
 

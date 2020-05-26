@@ -25,6 +25,9 @@
 			<artifactId>zookeeper</artifactId>
 			<type>pom</type>
 		</dependency>
-
+		<dependency>
+			<groupId>org.apache.curator</groupId>
+			<artifactId>curator-framework</artifactId>
+		</dependency>
 	</dependencies>
 </project>
