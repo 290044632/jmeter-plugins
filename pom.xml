@@ -10,7 +10,7 @@
 	<properties>
 		<jmeter.version>5.2.1</jmeter.version>
 		<rocketmq.version>4.7.0</rocketmq.version>
-		<fastjson.version>1.2.68</fastjson.version>
+		<fastjson.version>1.2.83</fastjson.version>
 		<dubbo.version>2.6.2</dubbo.version>
 		<zkclient.version>0.1</zkclient.version>
 		<zookepper.version>3.3.3</zookepper.version>
